@@ -15,18 +15,24 @@
 {% if name %}
     <h1> Hello {{ name }}</h1>
 
-    <img src="{{ url_for('static', filename='images/Mountains_rising.jpg') }}" class="img-fluid">
-
 {% else %}
-<h1> What is your name? </h1>
+<h1> Add User </h1>
 <br>
 <form method="POST">
     {{ form.hidden_tag() }}
+
     {{ form.name.label(class="form-label") }}
     {{ form.name(class="form-control") }}
+
+    {{ form.email.label(class="form-label") }}
+    {{ form.email(class="form-control") }}
     <br>
     {{ form.submit(class="btn btn-primary") }}
 </form>
+
+{% for our_user in our_users %}
+    {{ our_user.name }} | {{ our_user.email }}
+{% endfor %}
 
 {% endif %}
 {% endblock %}
