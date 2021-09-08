@@ -7,24 +7,27 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:BFKJYddpxVT23Zy@localhost:3306/users'
 app.config['SECRET_KEY'] = "the secret key"
 
 db = SQLAlchemy(app)
 
-class Users(db.Model):
+class users_data(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), nullable=False, unique=True)
-    date_added = db.Column(db.DateTime, default=datetime.utcnow)
+    username = db.Column(db.String(16), nullable=False)
+    password = db.Column(db.String(32), nullable=False)
+    email = db.Column(db.String(255), nullable=False, unique=True)
+    create_time = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
-        return '<Name %r>' % self.name
+        return '<Name %r>' % self.username
 
 # Form Class
 class UserForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
     email = StringField("Email", validators=[DataRequired()])
+    password = StringField("Password", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
 class NameInputForm(FlaskForm):
@@ -67,16 +70,17 @@ def add_user():
     name = None
 
     if form.validate_on_submit():
-        user = Users.query.filter_by(email=form.email.data).first()
+        user = users_data.query.filter_by(email=form.email.data).first()
 
         if user == None:
-            user = Users(name=form.name.data, email=form.email.data)
+            user = users_data(username=form.name.data, email=form.email.data, password=form.password.data)
             db.session.add(user)
             db.session.commit()
         name = form.name.data
         form.name.data = ''
         form.email.data = ''
+        form.password.data = ''
         flash("Form submitted successfully!")
 
-    our_users = Users.query.order_by(Users.date_added)
+    our_users = users_data.query.order_by(users_data.create_time)
     return render_template("add_user.html", form=form, name=name, our_users=our_users)

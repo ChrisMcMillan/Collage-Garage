@@ -26,12 +26,15 @@
 
     {{ form.email.label(class="form-label") }}
     {{ form.email(class="form-control") }}
+
+    {{ form.password.label(class="form-label") }}
+    {{ form.password(class="form-control") }}
     <br>
     {{ form.submit(class="btn btn-primary") }}
 </form>
 
 {% for our_user in our_users %}
-    {{ our_user.name }} | {{ our_user.email }}
+    {{ our_user.username }} , {{ our_user.email }} |
 {% endfor %}
 
 {% endif %}
