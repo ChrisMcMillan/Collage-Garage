@@ -1,9 +1,10 @@
-from flask import Flask, render_template, flash
+from flask import Flask, render_template, flash, request
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 
@@ -12,6 +13,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:BFKJYddpxVT23Zy@lo
 app.config['SECRET_KEY'] = "the secret key"
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class users_data(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -19,6 +21,7 @@ class users_data(db.Model):
     password = db.Column(db.String(32), nullable=False)
     email = db.Column(db.String(255), nullable=False, unique=True)
     create_time = db.Column(db.DateTime, default=datetime.utcnow)
+    favorite_color = db.Column(db.String(32))
 
     def __repr__(self):
         return '<Name %r>' % self.username
@@ -28,6 +31,7 @@ class UserForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
     email = StringField("Email", validators=[DataRequired()])
     password = StringField("Password", validators=[DataRequired()])
+    favorite_color = StringField("Favorite color", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
 class NameInputForm(FlaskForm):
@@ -73,14 +77,39 @@ def add_user():
         user = users_data.query.filter_by(email=form.email.data).first()
 
         if user == None:
-            user = users_data(username=form.name.data, email=form.email.data, password=form.password.data)
+            user = users_data(username=form.name.data, email=form.email.data,
+                              password=form.password.data, favorite_color=form.favorite_color.data)
             db.session.add(user)
             db.session.commit()
+
         name = form.name.data
         form.name.data = ''
         form.email.data = ''
         form.password.data = ''
+        form.favorite_color.data = ''
         flash("Form submitted successfully!")
 
     our_users = users_data.query.order_by(users_data.create_time)
     return render_template("add_user.html", form=form, name=name, our_users=our_users)
+
+@app.route('/update/<int:id>', methods=['GET', 'POST'])
+def update(id):
+    form = UserForm()
+    name_to_update = users_data.query.get_or_404(id)
+
+    if request.method == "POST":
+        name_to_update.username = request.form['name']
+        name_to_update.email = request.form['email']
+        name_to_update.favorite_color = request.form['favorite_color']
+
+        try:
+            db.session.commit()
+            flash("User Updated Successfully!")
+            return render_template("update.html", form=form, name_to_update=name_to_update)
+
+        except:
+            flash("Failed to update user")
+            return render_template("update.html", form=form, name_to_update=name_to_update)
+
+    else:
+        return render_template("update.html", form=form, name_to_update=name_to_update)
