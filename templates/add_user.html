@@ -32,6 +32,9 @@
 
     {{ form.password.label(class="form-label") }}
     {{ form.password(class="form-control") }}
+
+    {{ form.password_confirm.label(class="form-label") }}
+    {{ form.password_confirm(class="form-control") }}
     <br>
     {{ form.submit(class="btn btn-primary") }}
 </form>
@@ -39,7 +42,8 @@
 <h1> Click user name to update </h1>
 {% for our_user in our_users %}
    <a href="{{ url_for('update', id=our_user.id) }}">{{ our_user.username }} </a> ,
-{{ our_user.email }},  {{ our_user.favorite_color }} |
+    {{ our_user.email }},  {{ our_user.favorite_color }} <-
+    <a href="{{ url_for('delete', id=our_user.id) }}"> Delete </a> |
 {% endfor %}
 
 {% endif %}
