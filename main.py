@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
+from wtforms.widgets import TextArea
 
 app = Flask(__name__)
 
@@ -15,6 +16,8 @@ app.config['SECRET_KEY'] = "the secret key"
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+# Models
 
 class users_data(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -38,7 +41,15 @@ class users_data(db.Model):
     def __repr__(self):
         return '<Name %r>' % self.username
 
-# Form Class
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(50), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    author = db.Column(db.String(50), nullable=False)
+    create_time = db.Column(db.DateTime, default=datetime.utcnow)
+    slug = db.Column(db.String(50))
+
+# Forms
 class UserForm(FlaskForm):
     name = StringField("Name", validators=[DataRequired()])
     email = StringField("Email", validators=[DataRequired()])
@@ -48,8 +59,16 @@ class UserForm(FlaskForm):
     favorite_color = StringField("Favorite color")
     submit = SubmitField("Submit")
 
-class NameInputForm(FlaskForm):
-    name = StringField("What is your name?", validators=[DataRequired()])
+class PasswordForm(FlaskForm):
+    email = StringField("What is your email?", validators=[DataRequired()])
+    password = PasswordField("What is your password?", validators=[DataRequired()])
+    submit = SubmitField("Submit")
+
+class PostForm(FlaskForm):
+    title = StringField("Title", validators=[DataRequired()])
+    body = StringField("Body", validators=[DataRequired()], widget=TextArea())
+    author = StringField("Author", validators=[DataRequired()])
+    slug = StringField("Slug", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
 @app.route('/')
@@ -69,18 +88,51 @@ def page_not_found(e):
 def page_not_found(e):
     return render_template("500.html"), 500
 
+@app.route('/add_post', methods=['GET', 'POST'])
+def add_post():
 
-@app.route('/name', methods=['GET', 'POST'])
-def name():
-    name = None
-    form = NameInputForm()
+    form = PostForm()
 
     if form.validate_on_submit():
-        name = form.name.data
-        form.name.data = ''
+
+        new_post = Post(title=form.title.data, body=form.body.data, author=form.author.data, slug=form.slug.data)
+
+        db.session.add(new_post)
+        db.session.commit()
+
+        form.title.data = ''
+        form.body.data = ''
+        form.author.data = ''
+        form.slug.data = ''
+
         flash("Form submitted successfully!")
 
-    return render_template("name.html", name=name, form=form)
+    return render_template("add_post.html", form=form)
+
+@app.route('/test_pw', methods=['GET', 'POST'])
+def test_pw():
+    email = None
+    password = None
+    pw_to_check = None
+    passed = None
+    form = PasswordForm()
+
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
+
+        form.email.data = ''
+        form.password.data = ''
+
+        pw_to_check = users_data.query.filter_by(email=email).first()
+
+        if pw_to_check:
+            passed = pw_to_check.verify_password(password)
+
+        flash("Form submitted successfully!")
+
+    return render_template("test_pw.html", email=email, password=password, passed=passed,
+                           pw_to_check=pw_to_check, form=form)
 
 @app.route('/user/add', methods=['GET', 'POST'])
 def add_user():
