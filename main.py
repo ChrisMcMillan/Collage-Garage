@@ -1,4 +1,4 @@
-from flask import Flask, render_template, flash, request
+from flask import Flask, render_template, flash, request, redirect, url_for
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError
 from wtforms.validators import DataRequired, EqualTo, Length
@@ -134,6 +134,15 @@ def test_pw():
     return render_template("test_pw.html", email=email, password=password, passed=passed,
                            pw_to_check=pw_to_check, form=form)
 
+
+@app.route('/all_posts', methods=['GET'])
+def all_posts():
+
+    all_posts = Post.query.order_by(Post.create_time)
+
+    return render_template("show_posts.html", all_posts=all_posts)
+
+
 @app.route('/user/add', methods=['GET', 'POST'])
 def add_user():
     form = UserForm()
@@ -160,6 +169,42 @@ def add_user():
 
     our_users = users_data.query.order_by(users_data.create_time)
     return render_template("add_user.html", form=form, name=name, our_users=our_users)
+
+
+@app.route('/post_page/<int:id>', methods=['GET'])
+def post_page(id):
+
+    post = Post.query.get_or_404(id)
+
+    return render_template("post_page.html",  post=post)
+
+@app.route('/update_post/<int:id>', methods=['GET', 'POST'])
+def update_post(id):
+    form = PostForm()
+    post_to_update = Post.query.get_or_404(id)
+
+    if form.validate_on_submit():
+
+        post_to_update.title = form.title.data
+        post_to_update.body = form.body.data
+        post_to_update.author = form.author.data
+        post_to_update.slug = form.slug.data
+
+        db.session.add(post_to_update)
+        db.session.commit()
+
+        flash("Post Updated Successfully!")
+
+        return redirect(url_for('post_page', id=post_to_update.id))
+
+    form.title.data = post_to_update.title
+    form.body.data = post_to_update.body
+    form.author.data = post_to_update.author
+    form.slug.data = post_to_update.slug
+
+    return render_template("update_post.html", form=form, post_to_update=post_to_update)
+
+
 
 @app.route('/update/<int:id>', methods=['GET', 'POST'])
 def update(id):
