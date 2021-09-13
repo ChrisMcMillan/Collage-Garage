@@ -11,18 +11,19 @@
 
 {% endfor %}
 
-<h1> Post Page </h1>
-
-<h3> {{ post.title }} </h3>
-
-<p> {{ post.body }} </p>
-
-<small> Posted by {{ post.author }} on {{ post.create_time }}  </small>
-
+<h1> Login </h1>
 <br>
+<form method="POST">
+    {{ form.hidden_tag() }}
 
-<a class="btn btn-primary"  href="{{ url_for('update_post', id=post.id) }}"> Update </a>
+    {{ form.username.label(class="form-label") }}
+    {{ form.username(class="form-control") }}
 
-<a class="btn btn-danger"  href="{{ url_for('delete_post', id=post.id) }}"> Delete </a>
+    {{ form.password.label(class="form-label") }}
+    {{ form.password(class="form-control") }}
+
+    <br>
+    {{ form.submit(class="btn btn-primary") }}
+</form>
 
 {% endblock %}

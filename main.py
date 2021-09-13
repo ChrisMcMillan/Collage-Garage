@@ -1,12 +1,10 @@
 from flask import Flask, render_template, flash, request, redirect, url_for
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError
-from wtforms.validators import DataRequired, EqualTo, Length
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
-from wtforms.widgets import TextArea
+from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user
+from forms import UserForm, LoginForm, PasswordForm, PostForm
 
 app = Flask(__name__)
 
@@ -17,11 +15,19 @@ app.config['SECRET_KEY'] = "the secret key"
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# Models
+# Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
-class users_data(db.Model):
+@login_manager.user_loader
+def load_user(user_id):
+    return users_data.query.get(int(user_id))
+
+# Models
+class users_data(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(16), nullable=False)
+    username = db.Column(db.String(16), nullable=False, unique=True)
     password_hash = db.Column(db.String(128), nullable=False)
     email = db.Column(db.String(255), nullable=False, unique=True)
     create_time = db.Column(db.DateTime, default=datetime.utcnow)
@@ -49,27 +55,7 @@ class Post(db.Model):
     create_time = db.Column(db.DateTime, default=datetime.utcnow)
     slug = db.Column(db.String(50))
 
-# Forms
-class UserForm(FlaskForm):
-    name = StringField("Name", validators=[DataRequired()])
-    email = StringField("Email", validators=[DataRequired()])
-    password = PasswordField("Password", validators=[DataRequired(),
-                                                     EqualTo("password_confirm", message="Passwords must match")])
-    password_confirm = PasswordField("Confirm Password", validators=[DataRequired()])
-    favorite_color = StringField("Favorite color")
-    submit = SubmitField("Submit")
 
-class PasswordForm(FlaskForm):
-    email = StringField("What is your email?", validators=[DataRequired()])
-    password = PasswordField("What is your password?", validators=[DataRequired()])
-    submit = SubmitField("Submit")
-
-class PostForm(FlaskForm):
-    title = StringField("Title", validators=[DataRequired()])
-    body = StringField("Body", validators=[DataRequired()], widget=TextArea())
-    author = StringField("Author", validators=[DataRequired()])
-    slug = StringField("Slug", validators=[DataRequired()])
-    submit = SubmitField("Submit")
 
 @app.route('/')
 def index():
@@ -89,6 +75,7 @@ def page_not_found(e):
     return render_template("500.html"), 500
 
 @app.route('/add_post', methods=['GET', 'POST'])
+@login_required
 def add_post():
 
     form = PostForm()
@@ -179,6 +166,7 @@ def post_page(id):
     return render_template("post_page.html",  post=post)
 
 @app.route('/update_post/<int:id>', methods=['GET', 'POST'])
+@login_required
 def update_post(id):
     form = PostForm()
     post_to_update = Post.query.get_or_404(id)
@@ -206,31 +194,33 @@ def update_post(id):
 
 
 
-@app.route('/update/<int:id>', methods=['GET', 'POST'])
-def update(id):
+@app.route('/user/update/<int:id>', methods=['GET', 'POST'])
+@login_required
+def update_user(id):
     form = UserForm()
-    name_to_update = users_data.query.get_or_404(id)
+    user_to_update = users_data.query.get_or_404(id)
 
     if request.method == "POST":
-        name_to_update.username = request.form['name']
-        name_to_update.email = request.form['email']
-        name_to_update.favorite_color = request.form['favorite_color']
+        user_to_update.username = request.form['name']
+        user_to_update.email = request.form['email']
+        user_to_update.favorite_color = request.form['favorite_color']
 
         try:
             db.session.commit()
             flash("User Updated Successfully!")
-            return render_template("update.html", form=form, name_to_update=name_to_update)
+            return render_template("update_user.html", form=form, user_to_update=user_to_update)
 
         except:
             flash("Failed to update user")
-            return render_template("update.html", form=form, name_to_update=name_to_update)
+            return render_template("update_user.html", form=form, user_to_update=user_to_update)
 
     else:
-        return render_template("update.html", form=form, name_to_update=name_to_update)
+        return render_template("update_user.html", form=form, user_to_update=user_to_update)
 
 
-@app.route('/delete/<int:id>')
-def delete(id):
+@app.route('/user/delete/<int:id>')
+@login_required
+def delete_user(id):
     user_to_delete = users_data.query.get_or_404(id)
     form = UserForm()
     name = None
@@ -248,3 +238,53 @@ def delete(id):
         flash("Error: Could not delete user.")
         return render_template("add_user.html", form=form, name=name, our_users=our_users)
 
+
+@app.route('/posts/delete/<int:id>')
+@login_required
+def delete_post(id):
+
+    post_to_delete = Post.query.get_or_404(id)
+
+    try:
+        db.session.delete(post_to_delete)
+        db.session.commit()
+        flash("Post Deleted Successfully!")
+
+        return redirect(url_for('all_posts'))
+
+    except:
+
+        flash("Error: Could not delete post.")
+        return redirect(url_for('all_posts'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = users_data.query.filter_by(username=form.username.data).first()
+
+        if user:
+            if user.verify_password(form.password.data):
+                login_user(user)
+                flash("Login Successful")
+                return redirect(url_for('dashboard'))
+            else:
+                flash("Wrong Password")
+
+        else:
+            flash("User not found")
+
+    return render_template('login.html', form=form)
+
+@app.route('/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+    logout_user()
+    flash("You have been logged out")
+    return redirect(url_for('login'))
+
+@app.route('/dashboard', methods=['GET', 'POST'])
+@login_required
+def dashboard():
+
+    return render_template('user_dashboard.html')
