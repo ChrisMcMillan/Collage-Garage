@@ -2,25 +2,30 @@
 
 {% block content %}
 
-<h1> Update Post </h1>
-<br>
-<form action="/update_post/{{ post_to_update.id }}" method="POST">
-    {{ form.hidden_tag() }}
+{% if current_user.is_authenticated and current_user.id == author.id %}
 
-    {{ form.title.label(class="form-label") }}
-    {{ form.title(class="form-control", value=post_to_update.title) }}
-
-    {{ form.body.label(class="form-label") }}
-    {{ form.body(class="form-control", value=post_to_update.body) }}
-
-    {{ form.author.label(class="form-label") }}
-    {{ form.author(class="form-control", value=post_to_update.author) }}
-
-    {{ form.slug.label(class="form-label") }}
-    {{ form.slug(class="form-control", value=post_to_update.slug) }}
-
+    <h1> Update Post </h1>
     <br>
-    {{ form.submit(class="btn btn-primary") }}
-</form>
+    <form action="/update_post/{{ post_to_update.id }}" method="POST">
+        {{ form.hidden_tag() }}
+
+        {{ form.title.label(class="form-label") }}
+        {{ form.title(class="form-control", value=post_to_update.title) }}
+
+        {{ form.body.label(class="form-label") }}
+        {{ form.body(class="form-control", value=post_to_update.body) }}
+
+        {{ form.slug.label(class="form-label") }}
+        {{ form.slug(class="form-control", value=post_to_update.slug) }}
+
+        <br>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+
+{% else %}
+
+    <h1> Error: Current user is not log in or is not the author of post </h1>
+
+{% endif %}
 
 {% endblock %}

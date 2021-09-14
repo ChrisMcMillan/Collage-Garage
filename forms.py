@@ -18,14 +18,8 @@ class LoginForm(FlaskForm):
     password = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
-class PasswordForm(FlaskForm):
-    email = StringField("What is your email?", validators=[DataRequired()])
-    password = PasswordField("What is your password?", validators=[DataRequired()])
-    submit = SubmitField("Submit")
-
 class PostForm(FlaskForm):
     title = StringField("Title", validators=[DataRequired()])
     body = StringField("Body", validators=[DataRequired()], widget=TextArea())
-    author = StringField("Author", validators=[DataRequired()])
     slug = StringField("Slug", validators=[DataRequired()])
     submit = SubmitField("Submit")

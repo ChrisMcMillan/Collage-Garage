@@ -2,5 +2,8 @@ $env:FLASK_APP = "main"
 $env:FLASK_ENV = "development"
 flask run
 
+# Use this if target table is not up to date
+flask db stamp head
+
 flask db migrate -m "Comment"
 flask db upgrade

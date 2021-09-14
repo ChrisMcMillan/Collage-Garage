@@ -17,12 +17,16 @@
 
 <p> {{ post.body }} </p>
 
-<small> Posted by {{ post.author }} on {{ post.create_time }}  </small>
+<small> Posted by {{ author.username }} on {{ post.create_time }}  </small>
 
 <br>
 
-<a class="btn btn-primary"  href="{{ url_for('update_post', id=post.id) }}"> Update </a>
+{% if current_user.is_authenticated and current_user.id == author.id %}
 
-<a class="btn btn-danger"  href="{{ url_for('delete_post', id=post.id) }}"> Delete </a>
+    <a class="btn btn-primary"  href="{{ url_for('update_post', id=post.id) }}"> Update </a>
+
+    <a class="btn btn-danger"  href="{{ url_for('delete_post', id=post.id) }}"> Delete </a>
+
+{% endif %}
 
 {% endblock %}
