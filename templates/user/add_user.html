@@ -1,0 +1,28 @@
+{% extends 'general/base.html '%}
+
+{% block content %}
+
+<h1> Create Account </h1>
+<br>
+<form method="POST">
+    {{ form.hidden_tag() }}
+
+    {{ form.name.label(class="form-label") }}
+    {{ form.name(class="form-control") }}
+
+    {{ form.email.label(class="form-label") }}
+    {{ form.email(class="form-control") }}
+
+    {{ form.favorite_color.label(class="form-label") }}
+    {{ form.favorite_color(class="form-control") }}
+
+    {{ form.password.label(class="form-label") }}
+    {{ form.password(class="form-control") }}
+
+    {{ form.password_confirm.label(class="form-label") }}
+    {{ form.password_confirm(class="form-control") }}
+    <br>
+    {{ form.submit(class="btn btn-primary") }}
+</form>
+
+{% endblock %}

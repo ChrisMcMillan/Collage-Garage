@@ -1,0 +1,31 @@
+{% extends 'general/base.html '%}
+
+{% block content %}
+
+{% if current_user.is_authenticated and current_user.id == user_to_update.id %}
+
+    <h1> Update User </h1>
+    <br>
+    <form action="/user/update/{{ user_to_update.id }}" method="POST">
+        {{ form.hidden_tag() }}
+
+        {{ form.name.label(class="form-label") }}
+        {{ form.name(class="form-control", value=user_to_update.username) }}
+
+        {{ form.email.label(class="form-label") }}
+        {{ form.email(class="form-control", value=user_to_update.email) }}
+
+        {{ form.favorite_color.label(class="form-label") }}
+        {{ form.favorite_color(class="form-control", value=user_to_update.favorite_color) }}
+
+        <br>
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+
+{% else %}
+
+    <h1> Error: Current user is not log in or does not have correct user id </h1>
+
+{% endif %}
+
+{% endblock %}

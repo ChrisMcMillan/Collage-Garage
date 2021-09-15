@@ -4,7 +4,7 @@ from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from forms import UserForm, LoginForm, PostForm
-
+from sqlalchemy import or_
 
 app = Flask(__name__)
 
@@ -27,16 +27,16 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template("general/index.html")
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template("404.html"), 404
+    return render_template("error/404.html"), 404
 
 
 @app.errorhandler(500)
 def page_not_found(e):
-    return render_template("500.html"), 500
+    return render_template("error/500.html"), 500
 
 @app.route('/add_post', methods=['GET', 'POST'])
 @login_required
@@ -57,7 +57,7 @@ def add_post():
 
         flash("Form submitted successfully!")
 
-    return render_template("add_post.html", form=form)
+    return render_template("post/add_post.html", form=form)
 
 
 @app.route('/all_posts', methods=['GET'])
@@ -70,35 +70,41 @@ def all_posts():
     # for post in results:
      #   print(post.post_id, post.title, post.body, post.create_time, post.username)
 
-    return render_template("show_posts.html", all_posts=results)
+    return render_template("post/show_posts.html", all_posts=results)
 
 
 @app.route('/user/add', methods=['GET', 'POST'])
 def add_user():
     form = UserForm()
-    name = None
 
     if form.validate_on_submit():
-        user = users_data.query.filter_by(email=form.email.data).first()
+        user = users_data.query.filter(or_(users_data.username==form.name.data,
+                                           users_data.email==form.email.data)).first()
 
-        # If a user with the email does not already exist
+        # If a user with the email/username does not already exist
         if user == None:
             hashed_pw = generate_password_hash(form.password.data, "sha256")
             user = users_data(username=form.name.data, email=form.email.data,
                               password_hash=hashed_pw, favorite_color=form.favorite_color.data)
             db.session.add(user)
             db.session.commit()
+        else:
+            if user.email == form.email.data:
+                flash("Error: User with that email already exist.")
+            elif user.username == form.name.data:
+                flash("Error: User with that username already exist.")
 
-        name = form.name.data
+            return redirect(url_for('add_user'))
+
         form.name.data = ''
         form.email.data = ''
         form.password.data = ''
         form.password_confirm.data = ''
         form.favorite_color.data = ''
         flash("Form submitted successfully!")
+        return redirect(url_for('login'))
 
-    our_users = users_data.query.order_by(users_data.create_time)
-    return render_template("add_user.html", form=form, name=name, our_users=our_users)
+    return render_template("user/add_user.html", form=form)
 
 
 @app.route('/post_page/<int:id>', methods=['GET'])
@@ -108,7 +114,7 @@ def post_page(id):
 
     author = users_data.query.get_or_404(post.author)
 
-    return render_template("post_page.html",  post=post, author=author)
+    return render_template("post/post_page.html",  post=post, author=author)
 
 @app.route('/update_post/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -134,7 +140,7 @@ def update_post(id):
     form.body.data = post_to_update.body
     form.slug.data = post_to_update.slug
 
-    return render_template("update_post.html", form=form, post_to_update=post_to_update, author=author)
+    return render_template("post/update_post.html", form=form, post_to_update=post_to_update, author=author)
 
 
 
@@ -152,14 +158,14 @@ def update_user(id):
         try:
             db.session.commit()
             flash("User Updated Successfully!")
-            return render_template("update_user.html", form=form, user_to_update=user_to_update)
+            return render_template("user/update_user.html", form=form, user_to_update=user_to_update)
 
         except:
             flash("Failed to update user")
-            return render_template("update_user.html", form=form, user_to_update=user_to_update)
+            return render_template("user/update_user.html", form=form, user_to_update=user_to_update)
 
     else:
-        return render_template("update_user.html", form=form, user_to_update=user_to_update)
+        return render_template("user/update_user.html", form=form, user_to_update=user_to_update)
 
 
 @app.route('/user/delete/<int:id>')
@@ -169,18 +175,22 @@ def delete_user(id):
     form = UserForm()
     name = None
 
+    if current_user.id != user_to_delete.id:
+        flash("Error: You can not delete another user's account")
+        return redirect(url_for('all_posts'))
+
     try:
         db.session.delete(user_to_delete)
         db.session.commit()
         flash("User Deleted Successfully!")
 
         our_users = users_data.query.order_by(users_data.create_time)
-        return render_template("add_user.html", form=form, name=name, our_users=our_users)
+        return render_template("user/add_user.html", form=form, name=name, our_users=our_users)
 
     except:
 
         flash("Error: Could not delete user.")
-        return render_template("add_user.html", form=form, name=name, our_users=our_users)
+        return render_template("user/add_user.html", form=form, name=name, our_users=our_users)
 
 
 @app.route('/posts/delete/<int:id>')
@@ -188,6 +198,12 @@ def delete_user(id):
 def delete_post(id):
 
     post_to_delete = Post.query.get_or_404(id)
+
+    author = users_data.query.get_or_404(post_to_delete.author)
+
+    if current_user.id != author.id:
+        flash("Error: You can not delete other people's posts.")
+        return redirect(url_for('all_posts'))
 
     try:
         db.session.delete(post_to_delete)
@@ -218,7 +234,7 @@ def login():
         else:
             flash("User not found")
 
-    return render_template('login.html', form=form)
+    return render_template('general/login.html', form=form)
 
 @app.route('/logout', methods=['GET', 'POST'])
 @login_required
@@ -231,4 +247,4 @@ def logout():
 @login_required
 def dashboard():
 
-    return render_template('user_dashboard.html')
+    return render_template('user/user_dashboard.html')
