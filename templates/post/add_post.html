@@ -5,7 +5,7 @@
 <h1> Add Post </h1>
 <br>
 
-<form method="POST">
+<form method="POST" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
 
     {{ form.title.label(class="form-label") }}
@@ -16,6 +16,9 @@
 
     {{ form.slug.label(class="form-label") }}
     {{ form.slug(class="form-control") }}
+
+    {{ form.picture.label(class="form-label") }}
+    {{ form.picture(class="form-control-file") }}
 
     <br>
     {{ form.submit(class="btn btn-primary") }}

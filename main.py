@@ -5,6 +5,9 @@ from werkzeug.security import generate_password_hash
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
 from forms import UserForm, LoginForm, PostForm
 from sqlalchemy import or_
+import os
+import secrets
+from PIL import Image
 
 app = Flask(__name__)
 
@@ -14,7 +17,7 @@ app.config['SECRET_KEY'] = "the secret key"
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-from models import users_data, Post
+from models import users_data, Post, Picture
 
 # Login
 login_manager = LoginManager()
@@ -38,6 +41,20 @@ def page_not_found(e):
 def page_not_found(e):
     return render_template("error/500.html"), 500
 
+
+def save_picture(form_picture):
+    random_hex = secrets.token_hex(8)
+    f_name, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join(app.root_path, 'static/images', picture_fn)
+
+    output_size = (500, 500)
+    i = Image.open(form_picture)
+    i.thumbnail(output_size)
+    i.save(picture_path)
+
+    return picture_fn
+
 @app.route('/add_post', methods=['GET', 'POST'])
 @login_required
 def add_post():
@@ -50,6 +67,12 @@ def add_post():
 
         db.session.add(new_post)
         db.session.commit()
+
+        if form.picture.data:
+            picture_file = save_picture(form.picture.data)
+            new_picture = Picture(post=new_post.id, url=picture_file)
+            db.session.add(new_picture)
+            db.session.commit()
 
         form.title.data = ''
         form.body.data = ''
@@ -114,7 +137,13 @@ def post_page(id):
 
     author = users_data.query.get_or_404(post.author)
 
-    return render_template("post/post_page.html",  post=post, author=author)
+    image = Picture.query.filter_by(post=post.id).first()
+    image_file = None
+
+    if image:
+        image_file = url_for('static', filename='images/' + image.url)
+
+    return render_template("post/post_page.html",  post=post, author=author, image_file=image_file)
 
 @app.route('/update_post/<int:id>', methods=['GET', 'POST'])
 @login_required

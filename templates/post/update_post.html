@@ -6,7 +6,7 @@
 
     <h1> Update Post </h1>
     <br>
-    <form action="/update_post/{{ post_to_update.id }}" method="POST">
+    <form action="/update_post/{{ post_to_update.id }}" method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
 
         {{ form.title.label(class="form-label") }}
@@ -17,6 +17,9 @@
 
         {{ form.slug.label(class="form-label") }}
         {{ form.slug(class="form-control", value=post_to_update.slug) }}
+
+        {{ form.picture.label(class="form-label") }}
+        {{ form.picture(class="form-control-file") }}
 
         <br>
         {{ form.submit(class="btn btn-primary") }}

@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError
+from wtforms import StringField, SubmitField, PasswordField, FileField
 from wtforms.validators import DataRequired, EqualTo, Length
 from wtforms.widgets import TextArea
+from flask_wtf.file import FileField, FileAllowed
 
 # Forms
 class UserForm(FlaskForm):
@@ -22,4 +23,5 @@ class PostForm(FlaskForm):
     title = StringField("Title", validators=[DataRequired()])
     body = StringField("Body", validators=[DataRequired()], widget=TextArea())
     slug = StringField("Slug", validators=[DataRequired()])
+    picture = FileField("Picture", validators=[FileAllowed(['png', 'jpg'])])
     submit = SubmitField("Submit")

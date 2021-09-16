@@ -3,6 +3,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import UserMixin
 
+
 # Models
 class users_data(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -27,6 +28,7 @@ class users_data(db.Model, UserMixin):
     def __repr__(self):
         return '<Name %r>' % self.username
 
+
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(50), nullable=False)
@@ -34,3 +36,11 @@ class Post(db.Model):
     author = db.Column(db.Integer, db.ForeignKey('users_data.id'))
     create_time = db.Column(db.DateTime, default=datetime.utcnow)
     slug = db.Column(db.String(50))
+    pictures = db.relationship("Picture")
+
+
+class Picture(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    post = db.Column(db.Integer, db.ForeignKey('post.id'))
+    url = db.Column(db.String(20), nullable=False)
+    create_time = db.Column(db.DateTime, default=datetime.utcnow)
