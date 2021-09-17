@@ -12,7 +12,7 @@ class users_data(db.Model, UserMixin):
     email = db.Column(db.String(255), nullable=False, unique=True)
     create_time = db.Column(db.DateTime, default=datetime.utcnow)
     favorite_color = db.Column(db.String(32))
-    posts = db.relationship("Post")
+    posts = db.relationship("Post", backref="user", cascade="all, delete-orphan")
 
     @property
     def password(self):
@@ -36,7 +36,7 @@ class Post(db.Model):
     author = db.Column(db.Integer, db.ForeignKey('users_data.id'))
     create_time = db.Column(db.DateTime, default=datetime.utcnow)
     slug = db.Column(db.String(50))
-    pictures = db.relationship("Picture")
+    pictures = db.relationship("Picture", backref="my_post", cascade="all, delete-orphan")
 
 
 class Picture(db.Model):

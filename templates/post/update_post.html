@@ -25,6 +25,22 @@
         {{ form.submit(class="btn btn-primary") }}
     </form>
 
+    <br>
+    <h3> Uploaded Pictures </h3>
+    <br>
+    <div class="container">
+      <div class="row">
+
+        {% for image in image_files %}
+          <div class="col-4">
+            <img src="{{ image[0] }}" class="img-fluid">
+            <a class="btn btn-danger"  href="{{ url_for('delete_image', id=image[1]) }}"> Delete </a>
+          </div>
+        {% endfor %}
+
+      </div>
+    </div>
+
 {% else %}
 
     <h1> Error: Current user is not log in or is not the author of post </h1>

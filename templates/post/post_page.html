@@ -11,6 +11,7 @@
 <small> Posted by {{ author.username }} on {{ post.create_time }}  </small>
 
 <br>
+<br>
 
 {% if current_user.is_authenticated and current_user.id == author.id %}
 
@@ -20,6 +21,19 @@
 
 {% endif %}
 <br>
-<img src="{{ image_file }}" class="img-fluid">
+<br>
+<div class="container">
+  <div class="row">
+
+    {% for image in image_files %}
+      <div class="col-4">
+        <img src="{{ image }}" class="img-fluid">
+      </div>
+    {% endfor %}
+
+  </div>
+</div>
+
+<hr>
 
 {% endblock %}

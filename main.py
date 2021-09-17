@@ -6,6 +6,7 @@ from flask_login import LoginManager, login_required, login_user, logout_user, c
 from forms import UserForm, LoginForm, PostForm
 from sqlalchemy import or_
 import os
+from os import path
 import secrets
 from PIL import Image
 
@@ -54,6 +55,10 @@ def save_picture(form_picture):
     i.save(picture_path)
 
     return picture_fn
+
+def delete_picture(filename):
+    picture_path = os.path.join(app.root_path, 'static/images', filename)
+    os.remove(picture_path)
 
 @app.route('/add_post', methods=['GET', 'POST'])
 @login_required
@@ -137,13 +142,15 @@ def post_page(id):
 
     author = users_data.query.get_or_404(post.author)
 
-    image = Picture.query.filter_by(post=post.id).first()
-    image_file = None
+    images_table = Picture.query.filter_by(post=post.id).all()
+    image_files = []
 
-    if image:
-        image_file = url_for('static', filename='images/' + image.url)
+    if images_table:
+        for i in images_table:
+            image_files.append(url_for('static', filename='images/' + i.url))
 
-    return render_template("post/post_page.html",  post=post, author=author, image_file=image_file)
+    print(image_files)
+    return render_template("post/post_page.html",  post=post, author=author, image_files=image_files)
 
 @app.route('/update_post/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -161,6 +168,12 @@ def update_post(id):
         db.session.add(post_to_update)
         db.session.commit()
 
+        if form.picture.data:
+            picture_file = save_picture(form.picture.data)
+            new_picture = Picture(post=post_to_update.id, url=picture_file)
+            db.session.add(new_picture)
+            db.session.commit()
+
         flash("Post Updated Successfully!")
 
         return redirect(url_for('post_page', id=post_to_update.id))
@@ -169,7 +182,13 @@ def update_post(id):
     form.body.data = post_to_update.body
     form.slug.data = post_to_update.slug
 
-    return render_template("post/update_post.html", form=form, post_to_update=post_to_update, author=author)
+    image_files = []
+    for i in post_to_update.pictures:
+        image_files.append((url_for('static', filename='images/' + i.url), i.id))
+
+
+    return render_template("post/update_post.html", form=form, post_to_update=post_to_update,
+                           author=author, image_files=image_files)
 
 
 
@@ -202,24 +221,34 @@ def update_user(id):
 def delete_user(id):
     user_to_delete = users_data.query.get_or_404(id)
     form = UserForm()
-    name = None
 
     if current_user.id != user_to_delete.id:
         flash("Error: You can not delete another user's account")
         return redirect(url_for('all_posts'))
 
+    picture_filenames = []
+    all_user_posts = Post.query.filter_by(author=user_to_delete.id).all()
+    for cur_post in all_user_posts:
+        all_post_pictures = Picture.query.filter_by(post=cur_post.id).all()
+
+        for pic in all_post_pictures:
+            picture_filenames.append(pic.url)
+
     try:
+
+        for filename in picture_filenames:
+            delete_picture(filename)
+
         db.session.delete(user_to_delete)
         db.session.commit()
         flash("User Deleted Successfully!")
 
-        our_users = users_data.query.order_by(users_data.create_time)
-        return render_template("user/add_user.html", form=form, name=name, our_users=our_users)
+        return render_template("user/add_user.html", form=form)
 
     except:
 
         flash("Error: Could not delete user.")
-        return render_template("user/add_user.html", form=form, name=name, our_users=our_users)
+        return render_template("user/add_user.html", form=form)
 
 
 @app.route('/posts/delete/<int:id>')
@@ -230,11 +259,17 @@ def delete_post(id):
 
     author = users_data.query.get_or_404(post_to_delete.author)
 
+    all_post_pictures = Picture.query.filter_by(post=post_to_delete.id).all()
+
     if current_user.id != author.id:
         flash("Error: You can not delete other people's posts.")
         return redirect(url_for('all_posts'))
 
     try:
+
+        for pic in all_post_pictures:
+            delete_picture(pic.url)
+
         db.session.delete(post_to_delete)
         db.session.commit()
         flash("Post Deleted Successfully!")
@@ -245,6 +280,33 @@ def delete_post(id):
 
         flash("Error: Could not delete post.")
         return redirect(url_for('all_posts'))
+
+@app.route('/picture/delete/<int:id>')
+@login_required
+def delete_image(id):
+
+    picture_to_delete = Picture.query.get_or_404(id)
+    picture_owner = picture_to_delete.my_post.user
+    post_id = picture_to_delete.my_post.id
+
+    if current_user.id != picture_owner.id:
+        flash("Error: You can not delete other people's pictures.")
+        return redirect(url_for('all_posts'))
+
+    try:
+
+        delete_picture(picture_to_delete.url)
+        db.session.delete(picture_to_delete)
+        db.session.commit()
+        flash("Picture Deleted Successfully!")
+
+        return redirect(url_for('update_post', id=post_id))
+
+    except:
+
+        flash("Error: Could not delete picture.")
+        return redirect(url_for('update_post', id=post_id))
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
