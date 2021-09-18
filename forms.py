@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, FileField
+from wtforms import StringField, SubmitField, PasswordField, FileField, BooleanField
 from wtforms.validators import DataRequired, EqualTo, Length
 from wtforms.widgets import TextArea
 from flask_wtf.file import FileField, FileAllowed
@@ -22,6 +22,10 @@ class LoginForm(FlaskForm):
 class PostForm(FlaskForm):
     title = StringField("Title", validators=[DataRequired()])
     body = StringField("Body", validators=[DataRequired()], widget=TextArea())
-    slug = StringField("Slug", validators=[DataRequired()])
-    picture = FileField("Picture", validators=[FileAllowed(['png', 'jpg'])])
+    # picture = FileField("Picture", validators=[FileAllowed(['png', 'jpg'])])
+    published = BooleanField("Published")
     submit = SubmitField("Submit")
+
+class PictureForm(FlaskForm):
+    picture = FileField("Picture", validators=[DataRequired(), FileAllowed(['png', 'jpg'])])
+    upload = SubmitField("Upload")

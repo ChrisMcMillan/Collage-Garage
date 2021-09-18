@@ -15,11 +15,8 @@
         {{ form.body.label(class="form-label") }}
         {{ form.body(class="form-control", value=post_to_update.body) }}
 
-        {{ form.slug.label(class="form-label") }}
-        {{ form.slug(class="form-control", value=post_to_update.slug) }}
-
-        {{ form.picture.label(class="form-label") }}
-        {{ form.picture(class="form-control-file") }}
+         {{ form.published.label(class="form-label") }}
+        {{ form.published(class="form-control-file") }}
 
         <br>
         {{ form.submit(class="btn btn-primary") }}
@@ -27,6 +24,17 @@
 
     <br>
     <h3> Uploaded Pictures </h3>
+    <br>
+    <form action="/update_post/{{ post_to_update.id }}" method="POST" enctype="multipart/form-data">
+        {{ picture_form.hidden_tag() }}
+
+        {{ picture_form.picture.label(class="form-label") }}
+        {{ picture_form.picture(class="form-control-file") }}
+
+
+        <br>
+        {{ picture_form.upload(class="btn btn-primary") }}
+    </form>
     <br>
     <div class="container">
       <div class="row">
@@ -40,7 +48,7 @@
 
       </div>
     </div>
-
+    <hr>
 {% else %}
 
     <h1> Error: Current user is not log in or is not the author of post </h1>

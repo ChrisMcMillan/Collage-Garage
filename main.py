@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash
 from flask_login import LoginManager, login_required, login_user, logout_user, current_user
-from forms import UserForm, LoginForm, PostForm
+from forms import UserForm, LoginForm, PostForm, PictureForm
 from sqlalchemy import or_
 import os
 from os import path
@@ -68,22 +68,16 @@ def add_post():
 
     if form.validate_on_submit():
 
-        new_post = Post(title=form.title.data, author=current_user.id, body=form.body.data, slug=form.slug.data)
+        new_post = Post(title=form.title.data, author=current_user.id, body=form.body.data)
 
         db.session.add(new_post)
         db.session.commit()
 
-        if form.picture.data:
-            picture_file = save_picture(form.picture.data)
-            new_picture = Picture(post=new_post.id, url=picture_file)
-            db.session.add(new_picture)
-            db.session.commit()
-
         form.title.data = ''
         form.body.data = ''
-        form.slug.data = ''
 
         flash("Form submitted successfully!")
+        return redirect(url_for('update_post', id=new_post.id))
 
     return render_template("post/add_post.html", form=form)
 
@@ -92,7 +86,7 @@ def add_post():
 def all_posts():
 
     results = db.session.query(Post, users_data).\
-        join(users_data).filter(Post.author == users_data.id)\
+        join(users_data).filter(Post.author == users_data.id, Post.published == True)\
         .with_entities(Post.id.label('post_id'), Post.title, Post.body, Post.create_time, users_data.username)
 
     # for post in results:
@@ -156,6 +150,7 @@ def post_page(id):
 @login_required
 def update_post(id):
     form = PostForm()
+    picture_form = PictureForm()
     post_to_update = Post.query.get_or_404(id)
     author = users_data.query.get_or_404(post_to_update.author)
 
@@ -163,31 +158,37 @@ def update_post(id):
 
         post_to_update.title = form.title.data
         post_to_update.body = form.body.data
-        post_to_update.slug = form.slug.data
+        post_to_update.published = form.published.data
 
         db.session.add(post_to_update)
         db.session.commit()
 
-        if form.picture.data:
-            picture_file = save_picture(form.picture.data)
-            new_picture = Picture(post=post_to_update.id, url=picture_file)
-            db.session.add(new_picture)
-            db.session.commit()
 
         flash("Post Updated Successfully!")
 
         return redirect(url_for('post_page', id=post_to_update.id))
 
+    if picture_form.validate_on_submit():
+
+        picture_file = save_picture(picture_form.picture.data)
+        new_picture = Picture(post=post_to_update.id, url=picture_file)
+        db.session.add(new_picture)
+        db.session.commit()
+
+        flash("Picture Uploaded Successfully!")
+        return redirect(url_for('update_post', id=post_to_update.id))
+
     form.title.data = post_to_update.title
     form.body.data = post_to_update.body
-    form.slug.data = post_to_update.slug
+    form.published.data = post_to_update.published
 
     image_files = []
     for i in post_to_update.pictures:
         image_files.append((url_for('static', filename='images/' + i.url), i.id))
 
 
-    return render_template("post/update_post.html", form=form, post_to_update=post_to_update,
+    return render_template("post/update_post.html", form=form, picture_form=picture_form,
+                           post_to_update=post_to_update,
                            author=author, image_files=image_files)
 
 
@@ -338,4 +339,6 @@ def logout():
 @login_required
 def dashboard():
 
-    return render_template('user/user_dashboard.html')
+    all_user_posts = Post.query.filter_by(author=current_user.id).all()
+
+    return render_template('user/user_dashboard.html', all_posts=all_user_posts)

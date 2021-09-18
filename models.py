@@ -35,8 +35,8 @@ class Post(db.Model):
     body = db.Column(db.Text, nullable=False)
     author = db.Column(db.Integer, db.ForeignKey('users_data.id'))
     create_time = db.Column(db.DateTime, default=datetime.utcnow)
-    slug = db.Column(db.String(50))
     pictures = db.relationship("Picture", backref="my_post", cascade="all, delete-orphan")
+    published = db.Column(db.Boolean, default=False, nullable=False)
 
 
 class Picture(db.Model):

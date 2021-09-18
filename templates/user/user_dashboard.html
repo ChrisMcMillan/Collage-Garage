@@ -26,6 +26,24 @@
   </div>
 </div>
 
+<h1> My Posts </h1>
 
+<ul class="list-group">
+
+    {% for post in all_posts %}
+
+        <li class="list-group-item">
+
+           <h3> <a href="{{ url_for('post_page', id=post.id) }}"> {{ post.title }} </a>  </h3>
+
+            <p> {{ post.body }} </p>
+
+            <small> Posted by {{ post.username }} on {{ post.create_time }}  </small>
+
+        </li>
+
+    {% endfor %}
+
+</ul>
 
 {% endblock %}
