@@ -6,7 +6,6 @@ from flask_login import LoginManager, login_required, login_user, logout_user, c
 from forms import UserForm, LoginForm, PostForm, PictureForm
 from sqlalchemy import or_
 import os
-from os import path
 import secrets
 from PIL import Image
 from dotenv import load_dotenv
@@ -47,11 +46,14 @@ def page_not_found(e):
 
 
 def save_picture(form_picture):
+    # Gives the uploaded picture a random name to avoid problems
+    # that might be caused by pictures having the same name
     random_hex = secrets.token_hex(8)
     f_name, f_ext = os.path.splitext(form_picture.filename)
     picture_fn = random_hex + f_ext
     picture_path = os.path.join(app.root_path, 'static/images', picture_fn)
 
+    # Set picture to fix size and saves the picture file
     output_size = (500, 500)
     i = Image.open(form_picture)
     i.thumbnail(output_size)
@@ -71,6 +73,7 @@ def add_post():
 
     if form.validate_on_submit():
 
+        # Creates a new post object from the data in the form
         new_post = Post(title=form.title.data, author=current_user.id, body=form.body.data)
 
         db.session.add(new_post)
@@ -88,6 +91,8 @@ def add_post():
 @app.route('/all_posts', methods=['GET'])
 def all_posts():
 
+    # Join the Post table and the user data table based on if the post's author id
+    # matches the user's id in the user data table.
     results = db.session.query(Post, users_data).\
         join(users_data).filter(Post.author == users_data.id, Post.published == True)\
         .with_entities(Post.id.label('post_id'), Post.title, Post.body, Post.create_time, users_data.username)
